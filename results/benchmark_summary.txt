@@ -1,0 +1,5 @@
+Reproducible benchmark (seed=42)
+Portfolio: Equal utility=0.096857; SA=0.136759; SLSQP=0.136759; Hybrid=0.136759
+Monte Carlo DCF: P10=1124.17; P50=1371.77; P90=1665.42
+Trend walk-forward: accuracy=0.5005; majority baseline=0.5626; Brier=0.2889
+Conclusion: portfolio hybrid does not outperform SLSQP on this convex case; trend hypothesis does not beat baseline in this test.
