@@ -1,20 +1,18 @@
 # Financial Algorithms: Optimization, Valuation & Market Prediction
 
-A quantitative-finance modeling framework combining **portfolio optimization**, **valuation under uncertainty**, and **probabilistic market-trend analysis**. The project is designed around reproducible numerical experiments, explicit constraints, uncertainty quantification, and benchmark comparison.
+A quantitative-finance modeling framework combining **portfolio optimization**, **valuation under uncertainty**, and **probabilistic market-trend analysis**.
 
 | Model | Purpose | Core method | Output |
 |---|---|---|---|
 | **Portfolio Optimization** | Allocate capital under risk and realistic constraints | Simulated Annealing + SLSQP | Portfolio weights, risk/return profile |
 | **Financial Valuation & Risk** | Estimate value under uncertain future cash flows | DCF + Monte Carlo | Intrinsic-value distribution, P10/P50/P90 |
-| **Trend–Area–Uncertainty Forecasting** | Measure directional price pressure and forecast uncertainty | Slope + accumulated area + probabilistic model | Direction probability and uncertainty |
+| **Trend–Area–Uncertainty Forecasting** | Resolve direction, acceleration, accumulated pressure and uncertainty | Slope + curvature + area + stochastic forecast | Forecast distribution and signal decomposition |
 
 ## 1. Quantitative Finance & Portfolio Optimization
 
 $$U(w)=\mu^T w-\frac{\gamma}{2}w^T\Sigma w$$
 
-subject to $\sum_i w_i=1$ and $w_i\geq0$. The non-convex implementation additionally accounts for turnover, transaction cost, cardinality and minimum-position effects. Simulated Annealing explores portfolio supports globally; SLSQP performs constrained local refinement.
-
-### Portfolio optimization benchmark
+subject to $\sum_iw_i=1$ and $w_i\geq0$. The non-convex implementation additionally accounts for turnover, transaction cost, cardinality and minimum-position effects. Simulated Annealing explores portfolio supports globally; SLSQP performs constrained local refinement.
 
 ![Portfolio optimization benchmark](results/portfolio_academic.svg)
 
@@ -26,64 +24,91 @@ $$V=\sum_{t=1}^{n}\frac{CF_t}{(1+r)^t}+\frac{CF_n(1+g)}{(r-g)(1+r)^n},\qquad r>g
 
 Monte Carlo simulation propagates uncertainty through future cash flows and produces a valuation distribution instead of a single deterministic estimate.
 
-### Monte Carlo DCF convergence
-
 ![DCF convergence benchmark](results/dcf_academic.svg)
 
 50,000-path reference: **P10 1054.17 · P50 1376.21 · P90 1837.07**.
 
 ## 3. Unified Trend–Area–Uncertainty Forecast Model
 
-The model connects three ideas: **what price is doing now**, **what directional pressure has accumulated**, and **how uncertain the next movement remains**.
+The unified model separates price motion into complementary signals: **direction**, **acceleration**, **accumulated displacement from baseline**, and **stochastic uncertainty**.
 
 ### Architecture
 
-**Price Data → Slope → Accumulated Area Pressure → Trend Score → Gaussian/Stochastic Uncertainty → Forecast**
+![Unified Trend Area Uncertainty architecture](results/unified_architecture.svg)
 
-$$S_t=\frac{\Delta P}{\Delta t}$$
+The model begins with local direction
 
-$$A_t=\int_{t-W}^{t}[P(\tau)-M(\tau)]\,d\tau$$
+$$S_t=\frac{\Delta P}{\Delta t},$$
 
-$$T_t=w_1S_t+w_2A_t$$
+adds curvature or acceleration
 
-$$P_{t+h}=P_t+T_t+\sigma_t Z,\qquad Z\sim\mathcal N(0,1).$$
+$$C_t=\frac{dS}{dt}=\frac{d^2P}{dt^2},$$
 
-The executable probability model uses volatility-normalized log-price slope, short/medium momentum and integrated displacement to estimate $P(P_{t+h}>P_t\mid x_t)$.
+and measures accumulated area pressure relative to a moving baseline $M(t)$
 
-### Stock-style worked example
+$$A_t=\int(P-M)\,dt.$$
 
-A reproducible market-like price series is included to show exactly how the calculation behaves. It is deliberately labeled **illustrative**, rather than being passed off as historical market evidence.
+The signals are standardized before combination so their scales are comparable:
 
-For a 20-session window ending at time $t$:
+$$T_t=0.55Z(S_t)+0.20Z(C_t)+0.25Z(A_t).$$
 
-1. Fit the local log-price slope $S_t$.
-2. Compute the moving baseline $M_t$.
-3. Integrate the signed displacement $P-M$ to obtain area pressure $A_t$.
-4. Normalize the terms to comparable price/time units.
-5. Combine them into $T_t$.
-6. Estimate recent log-return volatility $\sigma_t$.
-7. Simulate future paths using the trend term plus stochastic shocks.
-8. Report the median path and uncertainty intervals rather than one falsely precise target.
+The demonstration uses a multiplicative stochastic forecast rather than simply extending a line:
 
-The calculation script is [`scripts/stock_case_study.py`](scripts/stock_case_study.py). Running it produces three presentation figures:
+$$P_{t+1}=P_t\exp\left[(\mu_t-\tfrac12\sigma^2)+\sigma Z_t\right],\qquad Z_t\sim N(0,1),$$
 
-**Trend and accumulated pressure.** Price is shown against its moving baseline; filled regions expose positive and negative accumulated pressure.
+with
 
-![Trend-area stock example](results/trend_area_stock_example.svg)
+$$\mu_t=\mu_0+\lambda T_t.$$
 
-**Forecast uncertainty fan.** Thousands of stochastic paths are summarized by the median trajectory and 50%/90% uncertainty intervals.
+### Demonstration configuration
 
-![Trend uncertainty fan](results/trend_uncertainty_fan.svg)
+| Quantity | Value |
+|---|---:|
+| Historical observations | **150 sessions** |
+| Forecast horizon | **45 sessions** |
+| Monte Carlo paths | **2,500** |
+| Baseline daily log-return $\mu_0$ | **0.0019567** |
+| Trend-adjusted forecast drift $\mu_t$ | **0.0032654** |
+| Estimated daily volatility $\sigma$ | **0.0100729** |
+| Final unified trend score $T$ | **1.63580** |
+| Signal weights | **0.55 slope / 0.20 curvature / 0.25 area** |
 
-**Model-component calculation.** The final observation decomposes slope, accumulated pressure, realized uncertainty and combined trend score.
+### Forecast with uncertainty
 
-![Trend component calculation](results/trend_component_calculation.svg)
+The historical trajectory and smoothed trend are followed by a **45-session Monte Carlo forecast**. The forecast is presented as a distribution of plausible outcomes, not a single guaranteed price target.
 
-### Controlled validation
+![Unified forecast with uncertainty](results/unified_forecast.svg)
+
+The widening band is important: uncertainty compounds with forecast horizon. The median path represents the center of the simulated distribution while the interval shows the dispersion generated by the estimated volatility term.
+
+### Signal decomposition
+
+Slope answers **where price is moving**. Curvature answers **whether that movement is strengthening or weakening**. Area pressure measures **what has accumulated relative to the local baseline**.
+
+![Unified signal components](results/unified_components.svg)
+
+These components are deliberately kept separate before standardization and weighting. A rising price can therefore be distinguished from a rising price whose acceleration is fading, or from a price whose short-term slope is weak while accumulated pressure remains positive.
+
+### Calculation flow
+
+For each forecast origin:
+
+1. Smooth the observed price trajectory and estimate a moving baseline $M(t)$.
+2. Compute $S_t=\Delta P/\Delta t$.
+3. Compute $C_t=dS/dt$.
+4. Integrate signed deviation from baseline to obtain $A_t$.
+5. Standardize $S$, $C$ and $A$ to obtain dimensionless comparable signals.
+6. Form $T=0.55Z(S)+0.20Z(C)+0.25Z(A)$.
+7. Estimate realized log-return volatility $\sigma$.
+8. Shift baseline drift through $\mu_t=\mu_0+\lambda T$.
+9. Generate 2,500 stochastic price paths.
+10. Summarize the path distribution with central forecast and uncertainty bands.
+
+### Controlled signal test
 
 ![Trend validation benchmark](results/trend_academic.svg)
 
-Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk control: **−0.0107 [−0.0178, −0.0031]**. The negative control tests whether the method manufactures apparent signal when none was introduced.
+Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk control: **−0.0107 [−0.0178, −0.0031]**. The negative control tests whether the forecasting machinery manufactures apparent signal when none was introduced.
 
 ## Benchmark summary
 
@@ -94,15 +119,9 @@ Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk control:
 | Simulated Annealing | 0.11910 [0.11702, 0.12107] |
 | **Hybrid SA→SLSQP** | **0.11915 [0.11710, 0.12110]** |
 | Monte Carlo DCF, 50,000 paths | **P10 1054.17 / P50 1376.21 / P90 1837.07** |
-| Trend controlled-signal skill | **+0.0170 [0.0077, 0.0259]** |
-| Trend random-walk control | **−0.0107 [−0.0178, −0.0031]** |
+| Unified-model controlled-signal skill | **+0.0170 [0.0077, 0.0259]** |
+| Random-walk control | **−0.0107 [−0.0178, −0.0031]** |
 | Integrated numerical tests | **10/10 passed** |
-
-## Validation
-
-The project evaluates feasibility, the complete non-convex portfolio objective, global versus local optimization, DCF monotonicity, Monte Carlo reproducibility and convergence, probability bounds, out-of-sample trend behavior, explicit random-walk controls, multi-seed experiments and bootstrap confidence intervals.
-
-Real-market performance evaluation additionally requires frozen historical datasets, untouched test periods, survivorship-aware universes, realistic fees/slippage and rolling or expanding estimation windows.
 
 ## Reproduce
 
@@ -110,8 +129,9 @@ Real-market performance evaluation additionally requires frozen historical datas
 python -m pip install -e '.[test]'
 pytest -q
 MPLBACKEND=Agg python scripts/academic_benchmark.py
-MPLBACKEND=Agg python scripts/stock_case_study.py
 ```
+
+The repository contains the model implementation, numerical tests, benchmark scripts and the figures displayed directly on this page.
 
 ## License
 
