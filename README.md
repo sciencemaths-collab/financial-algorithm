@@ -1,73 +1,142 @@
 # Financial Algorithms: Optimization, Valuation & Market Prediction
 
-> **A reproducible quantitative-finance research framework for portfolio optimization, valuation under uncertainty, and probabilistic trend analysis.**
+A quantitative-finance modeling framework combining **portfolio optimization**, **valuation under uncertainty**, and **probabilistic market-trend analysis**. The project is designed around reproducible numerical experiments, explicit constraints, uncertainty quantification, and benchmark comparison.
 
-This repository contains **three distinct computational models inside one quantitative-finance framework**.
-
-| Component | Scientific question | Core method | Primary output |
+| Model | Purpose | Core method | Output |
 |---|---|---|---|
-| **Portfolio Optimization** | How should capital be allocated under risk and realistic constraints? | Simulated Annealing + SLSQP | Optimal weights / efficient frontier |
-| **Valuation & Risk Modeling** | What is an asset/company worth under uncertain assumptions? | DCF + Monte Carlo | Intrinsic-value distribution |
-| **Trend–Area–Uncertainty Forecasting** | Does recent price geometry contain measurable directional information? | Slope + integrated displacement + regularized probability model | P(up), P(down), uncertainty |
+| **Portfolio Optimization** | Allocate capital under risk and realistic constraints | Simulated Annealing + SLSQP | Portfolio weights, risk/return profile |
+| **Financial Valuation & Risk** | Estimate value under uncertain future cash flows | DCF + Monte Carlo | Intrinsic-value distribution, P10/P50/P90 |
+| **Trend–Area–Uncertainty Forecasting** | Measure directional price pressure and forecast uncertainty | Slope + accumulated area + probabilistic model | Direction probability and uncertainty |
+
+---
+
+## System architecture
+
+The framework follows a common quantitative workflow:
+
+**Market / fundamental data → preprocessing & estimation → model engine → constraints & uncertainty → outputs → backtesting & validation**
+
+The three model families are distinct. Portfolio optimization solves an allocation problem, valuation estimates intrinsic value, and trend forecasting evaluates directional time-series structure.
+
+---
 
 ## 1. Quantitative Finance & Portfolio Optimization
 
-The smooth objective is
+The base risk-adjusted objective is
 
 $$U(w)=\mu^T w-\frac{\gamma}{2}w^T\Sigma w$$
 
-subject to $\sum_iw_i=1$ and $w_i\geq0$. The research benchmark additionally includes turnover, transaction-cost, cardinality and minimum-position penalties, producing a genuinely non-convex allocation problem. Simulated Annealing performs global support exploration and SLSQP performs constrained local refinement.
+subject to
 
-### Benchmark: non-convex portfolio optimization
+$$\sum_i w_i=1,\qquad w_i\geq0.$$
+
+The implemented non-convex formulation additionally accounts for transaction/turnover cost, cardinality and minimum-position effects:
+
+$$U_{nc}(w)=U(w)-c\lVert w-w_{prev}\rVert_1-\lambda_c\Phi_{card}(w)-\lambda_m\Phi_{min}(w).$$
+
+**Simulated Annealing** performs global exploration across discontinuous portfolio supports. **SLSQP** performs constrained continuous refinement. The hybrid retains the refined solution only when it improves the complete non-convex objective.
+
+### Portfolio optimization benchmark
 
 ![Portfolio optimization benchmark](results/portfolio_academic.svg)
 
-**Result:** Hybrid SA→SLSQP mean utility **0.11915**, 95% bootstrap CI **[0.11710, 0.12110]**, across 30 independent synthetic markets.
+Across 30 independent controlled markets, Hybrid SA→SLSQP produced mean utility **0.11915**, with 95% bootstrap interval **[0.11710, 0.12110]**. SA alone produced **0.11910**, while SLSQP evaluated under the full non-convex objective produced **0.11601**.
+
+---
 
 ## 2. Financial Valuation & Risk Modeling
 
-$$V=\sum_{t=1}^{n}\frac{CF_t}{(1+r)^t}+\frac{CF_n(1+g)}{(r-g)(1+r)^n},\qquad r>g$$
+The valuation engine uses discounted cash flow with a Gordon-growth terminal value:
 
-Monte Carlo simulation propagates uncertainty through future cash flows and reports valuation intervals rather than a single deterministic number.
+$$V=\sum_{t=1}^{n}\frac{CF_t}{(1+r)^t}+\frac{CF_n(1+g)}{(r-g)(1+r)^n},\qquad r>g.$$
 
-### Benchmark: Monte Carlo DCF convergence
+Instead of reporting one deterministic valuation, Monte Carlo simulation propagates uncertainty through future cash-flow growth. The resulting distribution supports downside, central and upside valuation estimates.
+
+### Monte Carlo DCF convergence
 
 ![DCF convergence benchmark](results/dcf_academic.svg)
 
-**50,000-path reference:** P10 **1054.17**, P50 **1376.21**, P90 **1837.07**.
+For the 50,000-path reference experiment:
+
+**P10 = 1054.17 · P50 = 1376.21 · P90 = 1837.07**
+
+The convergence experiment varies simulation count and random seed to measure stability of the median intrinsic-value estimate.
+
+---
 
 ## 3. Unified Trend–Area–Uncertainty Forecast Model
 
-Conceptually:
+This model combines instantaneous movement, accumulated deviation from a local baseline, and stochastic uncertainty.
 
-**Price Data → Slope → Accumulated Area → Trend Score → Probability + Uncertainty**
+### Model architecture
 
-$$S_t=\frac{\Delta P}{\Delta t},\qquad A_t=\int_{t-W}^{t}[P(\tau)-M(\tau)]d\tau,\qquad T_t=w_1S_t+w_2A_t$$
+**Price Data → Slope → Accumulated Area Pressure → Trend Score → Uncertainty → Forecast**
 
-The benchmarked implementation uses volatility-normalized log-price slope, short/medium momentum, integrated displacement and regularized probabilistic estimation of $P(P_{t+h}>P_t)$.
+The intuitive formulation begins with local slope:
 
-### Benchmark: controlled signal vs null market
+$$S_t=\frac{\Delta P}{\Delta t}$$
+
+and accumulated area relative to a moving baseline $M(t)$:
+
+$$A_t=\int_{t-W}^{t}[P(\tau)-M(\tau)]\,d\tau.$$
+
+These terms form a trend score:
+
+$$T_t=w_1S_t+w_2A_t,$$
+
+with an uncertainty-aware explanatory forecast of the form
+
+$$P_{next}=P_{now}+T_t+\sigma_t Z,\qquad Z\sim\mathcal{N}(0,1).$$
+
+The executable forecasting implementation uses a numerically stable feature representation based on volatility-normalized log-price slope, short and medium momentum, integrated displacement, and regularized probability estimation:
+
+$$P(P_{t+h}>P_t\mid x_t).$$
+
+This keeps the architecture interpretable while allowing the benchmarked implementation to operate on normalized time-series quantities.
+
+### Trend model validation
 
 ![Trend validation benchmark](results/trend_academic.svg)
 
-Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk/null skill: **−0.0107 [−0.0178, −0.0031]**. This is controlled synthetic signal recovery, not a claim of live-market predictability.
+The controlled persistence experiment produced mean out-of-sample skill **+0.0170 [0.0077, 0.0259]** relative to the majority baseline. The random-walk control produced **−0.0107 [−0.0178, −0.0031]**. The null experiment is intentionally included to test whether the model invents apparent signal where none was introduced.
 
-## Reproduced results
+---
+
+## Benchmark summary
 
 | Experiment | Result |
 |---|---:|
 | Equal-weight non-convex utility | 0.07347 [0.07204, 0.07489] |
-| SLSQP on true non-convex objective | 0.11601 [0.11379, 0.11834] |
+| SLSQP on complete non-convex objective | 0.11601 [0.11379, 0.11834] |
 | Simulated Annealing | 0.11910 [0.11702, 0.12107] |
 | **Hybrid SA→SLSQP** | **0.11915 [0.11710, 0.12110]** |
-| Monte Carlo DCF | **P10 1054.17 / P50 1376.21 / P90 1837.07** |
+| Monte Carlo DCF, 50,000 paths | **P10 1054.17 / P50 1376.21 / P90 1837.07** |
 | Trend controlled-signal skill | **+0.0170 [0.0077, 0.0259]** |
-| Trend random-walk/null skill | **−0.0107 [−0.0178, −0.0031]** |
-| Integrated academic tests | **10/10 passed** |
+| Trend random-walk control | **−0.0107 [−0.0178, −0.0031]** |
+| Integrated numerical tests | **10/10 passed** |
 
-## Validation and reproducibility
+---
 
-The validation suite checks feasibility, non-degradation under the true discontinuous portfolio objective, DCF monotonicity, invalid terminal assumptions, Monte Carlo reproducibility and quantile ordering, probability bounds, controlled-signal recovery, explicit null markets, multi-seed behavior and bootstrap confidence intervals.
+## Validation
+
+The project evaluates numerical correctness and model behavior through:
+
+- portfolio feasibility and fully-invested constraints;
+- non-convex objective evaluation after transaction and discrete penalties;
+- global-search versus local-refinement comparison;
+- Monte Carlo reproducibility and quantile ordering;
+- DCF discount-rate and terminal-growth validity checks;
+- convergence across simulation counts and random seeds;
+- probabilistic forecast bounds;
+- out-of-sample trend evaluation;
+- explicit random-walk negative controls;
+- multi-seed experiments and bootstrap confidence intervals.
+
+The current benchmark suite is a controlled numerical evaluation. Real-market performance evaluation should additionally use frozen historical datasets, untouched final test periods, survivorship-aware asset universes, realistic fees/slippage and rolling or expanding estimation windows.
+
+---
+
+## Reproduce
 
 ```bash
 python -m pip install -e '.[test]'
@@ -75,11 +144,29 @@ pytest -q
 MPLBACKEND=Agg python scripts/academic_benchmark.py
 ```
 
-Full experimental protocol: [`ACADEMIC_VALIDATION.md`](ACADEMIC_VALIDATION.md)  
-Reproduced evidence: [`results/ACADEMIC_RESULTS.md`](results/ACADEMIC_RESULTS.md)
+The command regenerates the benchmark figures displayed directly on this page.
 
-## Scientific scope
+Experimental methodology: [`ACADEMIC_VALIDATION.md`](ACADEMIC_VALIDATION.md)  
+Detailed benchmark results: [`results/ACADEMIC_RESULTS.md`](results/ACADEMIC_RESULTS.md)
 
-The current evidence establishes numerical correctness and controlled synthetic behavior. Claims about empirical market performance require a frozen historical dataset, untouched final test interval, survivorship-aware universe construction, realistic fees/slippage, rolling or expanding training windows, and benchmark comparisons.
+---
 
-**Research and educational software. Not investment advice.**
+## Project structure
+
+```text
+financial-algorithm/
+├── src/financial_algorithms/     # optimization, valuation, forecasting and metrics
+├── scripts/                      # reproducible benchmark runners
+├── tests/                        # numerical and behavioral tests
+├── results/                      # generated figures and benchmark evidence
+├── README.md
+└── LICENSE
+```
+
+## License
+
+Released under the **MIT License**. See [`LICENSE`](LICENSE).
+
+## Disclaimer
+
+This project is quantitative-finance research software. It is not investment advice and does not guarantee financial performance.
