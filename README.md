@@ -1,56 +1,66 @@
-# Financial Algorithms
+# Financial Algorithms: Optimization, Valuation & Market Prediction
 
-A reproducible research implementation of three distinct finance algorithms:
+A reproducible quantitative-finance research suite containing **three distinct algorithms inside one system architecture**.
 
-1. **Portfolio Optimization** — Simulated Annealing (global search), SLSQP (constrained local optimization), and a hybrid SA→SLSQP method.
-2. **Financial Valuation & Risk Modeling** — discounted cash flow (DCF) with Monte Carlo uncertainty and P10/P50/P90 valuation intervals.
-3. **Market Trend Prediction** — slope + integrated trend + stochastic uncertainty, evaluated honestly with walk-forward testing.
+1. **Quantitative Finance & Portfolio Optimization**: constrained allocation using Simulated Annealing (global search), SLSQP (local constrained refinement), and a hybrid SA→SLSQP method.
+2. **Financial Valuation & Risk Modeling**: DCF valuation, Monte Carlo uncertainty, sensitivity analysis, and P10/P50/P90 value ranges.
+3. **Market Trend Prediction**: a regularized probabilistic model using normalized log-price slope, short/medium momentum, integrated trajectory displacement, and volatility.
+
+The presentation architecture is therefore a system map, not a claim that every box is a different algorithm. Data ingestion/cleaning and validation feed the models; constraints define feasible portfolios; backtesting and statistical validation evaluate outputs.
 
 ## Mathematical core
 
-Portfolio utility: `U(w) = μᵀw − (γ/2) wᵀΣw`, subject to `Σwᵢ = 1` and `wᵢ ≥ 0`.
+Portfolio objective:
 
-DCF: `V = Σ CF_t/(1+r)^t + TV/(1+r)^n`.
+`U(w) = μᵀw − (γ/2) wᵀΣw − transaction/discrete penalties`
 
-Trend score: `μ_t = α slope(P) + β mean-integrated ΔP`, converted to `P(up)` using recent realized volatility.
+subject to full investment and long-only constraints. The academic benchmark adds turnover, cardinality, minimum-position and sparse-support effects, making the objective genuinely non-convex.
+
+DCF:
+
+`V = Σ CF_t/(1+r)^t + TV/(1+r)^n`, with `TV = CF_n(1+g)/(r-g)`.
+
+Trend model:
+
+`x_t = [normalized slope, short momentum, medium momentum, integrated displacement]`, followed by regularized probabilistic classification for `P(P_{t+h} > P_t)`.
+
+## Verified benchmark
+
+The current academic benchmark was executed locally with **30 independent synthetic markets**, bootstrap confidence intervals, an explicit null control for trend prediction, DCF convergence testing, and unit tests.
+
+| Experiment | Reproduced result |
+|---|---|
+| Equal-weight non-convex utility | 0.07347 [0.07204, 0.07489] |
+| SLSQP utility evaluated on true non-convex objective | 0.11601 [0.11379, 0.11834] |
+| Simulated Annealing | 0.11910 [0.11702, 0.12107] |
+| Hybrid SA→SLSQP | **0.11915 [0.11710, 0.12110]** |
+| Monte Carlo DCF, 50,000 paths | **P10 1054.17 / P50 1376.21 / P90 1837.07** |
+| Trend controlled-signal skill | **+0.0170 [0.0077, 0.0259]** |
+| Trend null random-walk skill | **−0.0107 [−0.0178, −0.0031]** |
+| Local academic test suite | **10/10 passed** |
+
+These results are intentionally conservative. The hybrid optimizer shows only a small advantage over SA alone. The trend result demonstrates recovery of an injected synthetic persistence signal, **not evidence of live-market predictability**.
 
 ## Reproduce
 
 ```bash
 python -m pip install -e '.[test]'
 pytest -q
-python scripts/benchmark.py
+MPLBACKEND=Agg python scripts/academic_benchmark.py
 ```
 
-## Benchmark result
+The benchmark generates vector SVG figures suitable for academic slides/posters:
 
-The benchmark is deliberately diagnostic, not promotional.
+- `results/portfolio_academic.svg`
+- `results/dcf_academic.svg`
+- `results/trend_academic.svg`
 
-| Module | Result | Interpretation |
-|---|---:|---|
-| Unit tests | 5/5 pass | Core invariants and numerical behavior pass |
-| Equal-weight portfolio utility | 0.096857 | Baseline |
-| SA utility | 0.136759 | Reaches the constrained optimum on the synthetic case |
-| SLSQP utility | 0.136759 | Same optimum, faster for this convex formulation |
-| Hybrid SA→SLSQP utility | 0.136759 | No measurable advantage over SLSQP on this convex case |
-| Monte Carlo DCF P10/P50/P90 | 1124 / 1372 / 1665 | Ordered, interpretable valuation uncertainty |
-| Trend walk-forward accuracy | 50.1% | Below 56.3% majority-class baseline on this seeded synthetic series |
-| Trend Brier score | 0.289 | Probability calibration is not competitive in this test |
+See `ACADEMIC_VALIDATION.md` for experimental design and `results/ACADEMIC_RESULTS.md` for the reproduced evidence table.
 
-### Scientific conclusion
+## Academic use
 
-The three algorithms are **not the same algorithm**. Portfolio optimization solves a constrained allocation problem; valuation estimates intrinsic value under uncertain cash flows; trend prediction attempts probabilistic forecasting.
-
-The benchmark also prevents overclaiming. In the convex portfolio test, SLSQP alone already finds the same solution as SA and the hybrid, so the hybrid is not justified by this test. SA becomes more relevant when objectives are non-convex, discontinuous, or contain realistic transaction/tax/cardinality constraints. The trend model does **not** beat its simple baseline in the included walk-forward experiment and should be treated as an experimental hypothesis requiring feature/model refinement, not as a validated predictor.
-
-## Figures
-
-Running `python scripts/benchmark.py` generates publication-style SVG figures in `results/`:
-
-- `portfolio_benchmark.svg` — feasible risk-return cloud and optimizer comparison
-- `dcf_distribution.svg` — Monte Carlo intrinsic-value distribution with P10/P50/P90
-- `trend_walkforward.svg` — out-of-sample probability trace and decision threshold
+For a paper or formal conference claim, the next evidence layer should use a frozen historical dataset with an untouched final test interval, survivorship-aware universe construction, realistic fees/slippage, rolling or expanding training windows, and comparisons against equal-weight, buy-and-hold, minimum-variance and simple momentum baselines.
 
 ## Scope
 
-Educational/research software. It is not investment advice and does not guarantee financial performance.
+Research and educational software. Not investment advice. No guarantee of financial performance.
