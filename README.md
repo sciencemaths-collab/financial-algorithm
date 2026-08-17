@@ -14,9 +14,7 @@ $$U(w)=\mu^T w-\frac{\gamma}{2}w^T\Sigma w$$
 
 subject to $\sum_iw_i=1$ and $w_i\geq0$. The non-convex implementation additionally accounts for turnover, transaction cost, cardinality and minimum-position effects. Simulated Annealing explores portfolio supports globally; SLSQP performs constrained local refinement.
 
-![Portfolio optimization benchmark](https://github.com/sciencemaths-collab/financial-algorithm/blob/main/results/portfolio_academic.svg?raw=1)
-
-Hybrid SA→SLSQP mean utility: **0.11915**, 95% bootstrap interval **[0.11710, 0.12110]**, across 30 controlled markets.
+**Benchmark result:** Hybrid SA→SLSQP mean utility **0.11915**, 95% bootstrap interval **[0.11710, 0.12110]**, across 30 controlled markets. SA alone produced **0.11910** and SLSQP evaluated under the complete non-convex objective produced **0.11601**.
 
 ## 2. Financial Valuation & Risk Modeling
 
@@ -24,9 +22,7 @@ $$V=\sum_{t=1}^{n}\frac{CF_t}{(1+r)^t}+\frac{CF_n(1+g)}{(r-g)(1+r)^n},\qquad r>g
 
 Monte Carlo simulation propagates uncertainty through future cash flows and produces a valuation distribution instead of a single deterministic estimate.
 
-![DCF convergence benchmark](https://github.com/sciencemaths-collab/financial-algorithm/blob/main/results/dcf_academic.svg?raw=1)
-
-50,000-path reference: **P10 1054.17 · P50 1376.21 · P90 1837.07**.
+**50,000-path reference:** P10 **1054.17**, P50 **1376.21**, P90 **1837.07**.
 
 ## 3. Unified Trend–Area–Uncertainty Forecast Model
 
@@ -34,7 +30,7 @@ The unified model separates price motion into complementary signals: **direction
 
 ### Architecture
 
-![Unified Trend–Area–Uncertainty architecture](https://github.com/sciencemaths-collab/financial-algorithm/blob/main/results/unified_architecture.svg?raw=1)
+![Unified Trend–Area–Uncertainty architecture](./results/unified_architecture.jpg)
 
 $$S_t=\frac{\Delta P}{\Delta t},\qquad C_t=\frac{dS}{dt}=\frac{d^2P}{dt^2},\qquad A_t=\int(P-M)\,dt.$$
 
@@ -63,15 +59,15 @@ with $\mu_t=\mu_0+\lambda T_t$.
 
 ### Forecast with uncertainty
 
-![Unified forecast with uncertainty](https://github.com/sciencemaths-collab/financial-algorithm/blob/main/results/unified_forecast.svg?raw=1)
+![Unified forecast with uncertainty](./results/unified_forecast.jpg)
 
-The widening interval visualizes uncertainty accumulation across the 45-session forecast horizon. The central trajectory is the median of 2,500 simulated paths.
+The historical trajectory and smoothed trend are followed by a **45-session Monte Carlo forecast**. The central path is the median of 2,500 simulations; the widening interval shows uncertainty accumulating with forecast horizon rather than presenting a falsely precise single price target.
 
 ### Signal decomposition
 
-![Unified signal components](https://github.com/sciencemaths-collab/financial-algorithm/blob/main/results/unified_components.svg?raw=1)
+![Unified signal components](./results/unified_components.jpg)
 
-Slope measures current direction, curvature measures strengthening or weakening movement, and area pressure captures accumulated signed displacement relative to the moving baseline.
+Slope measures current direction, curvature measures whether movement is strengthening or weakening, and area pressure captures accumulated signed displacement relative to the moving baseline. Standardization makes the three signals comparable before weighting.
 
 ### Calculation flow
 
@@ -88,9 +84,7 @@ Slope measures current direction, curvature measures strengthening or weakening 
 
 ### Controlled signal test
 
-![Trend validation benchmark](https://github.com/sciencemaths-collab/financial-algorithm/blob/main/results/trend_academic.svg?raw=1)
-
-Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk control: **−0.0107 [−0.0178, −0.0031]**.
+Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk control: **−0.0107 [−0.0178, −0.0031]**. The negative control checks whether the forecasting machinery manufactures apparent skill when no persistence signal is introduced.
 
 ## Benchmark summary
 
