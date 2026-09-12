@@ -1,6 +1,8 @@
 # Financial Algorithms: Optimization, Valuation & Market Prediction
 
-A quantitative-finance modeling framework combining **portfolio optimization**, **valuation under uncertainty**, and **probabilistic market-trend analysis**.
+A qualified, deterministic financial decision-support engine combining **portfolio optimization**, **valuation under uncertainty**, and **probabilistic market assessment**. Version 0.2.0 is the reference implementation for RAD capability `rad.decision.financial` through adapter contract 1.0.0.
+
+It produces reviewable recommendations only. It cannot place orders, access a broker, authorize a transaction, or guarantee financial performance.
 
 | Model | Purpose | Core method | Output |
 |---|---|---|---|
@@ -97,15 +99,44 @@ Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk control:
 | Monte Carlo DCF, 50,000 paths | **P10 1054.17 / P50 1376.21 / P90 1837.07** |
 | Unified-model controlled-signal skill | **+0.0170 [0.0077, 0.0259]** |
 | Random-walk control | **−0.0107 [−0.0178, −0.0031]** |
-| Integrated numerical tests | **10/10 passed** |
+| Automated tests | **28/28 passed** |
+| Formal decision-support qualification | **25/25 passed** |
 
-## Reproduce
+## Install and run
 
 ```bash
-python -m pip install -e '.[test]'
-pytest -q
-MPLBACKEND=Agg python scripts/academic_benchmark.py
+python -m pip install financial-algorithms
+python - <<'PY'
+from financial_algorithms import decide
+
+result = decide({
+    "operation": "valuation.estimate",
+    "cashflows": [100, 105, 110, 115, 120],
+    "discount_rate": 0.10,
+    "simulations": 1000,
+    "seed": 7,
+})
+print(result["decision"])
+PY
 ```
+
+For a source checkout, use `uv sync --extra test`, then run:
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy
+uv run pytest -q
+uv run pip-audit --progress-spinner=off
+uv build
+uv run python scripts/validate_contracts.py
+uv run python -m financial_algorithms.qualification --output artifacts/qualification.json
+uv run python scripts/clean_wheel_acceptance.py
+```
+
+See [`docs/ENGINE_CONTRACT.md`](docs/ENGINE_CONTRACT.md),
+[`docs/QUALIFICATION.md`](docs/QUALIFICATION.md), and
+[`docs/SECURITY.md`](docs/SECURITY.md) for the supported boundary and evidence claims.
 
 ## License
 
@@ -113,4 +144,4 @@ Released under the **MIT License**. See [`LICENSE`](LICENSE).
 
 ## Disclaimer
 
-Quantitative-finance research software. Not investment advice. No guarantee of financial performance.
+Quantitative-finance decision-support software. Not investment advice. No guarantee of financial performance. Independent professional review, current data validation, suitability assessment, and explicit human authorization remain necessary before any external action.

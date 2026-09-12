@@ -1,16 +1,38 @@
 [build-system]
-requires=["setuptools>=68"]
+requires=["setuptools>=80"]
 build-backend="setuptools.build_meta"
 
 [project]
 name="financial-algorithms"
-version="0.1.0"
-description="Reproducible portfolio optimization, valuation-risk, and market-trend algorithms"
-requires-python=">=3.10"
-dependencies=["numpy>=1.24","scipy>=1.10","matplotlib>=3.7"]
+version="0.2.0"
+description="Qualified, deterministic financial decision-support engine"
+readme="README.md"
+license="MIT"
+requires-python=">=3.12"
+dependencies=["numpy>=1.24","scipy>=1.10"]
 
 [project.optional-dependencies]
-test=["pytest>=8"]
+test=["build>=1.3","jsonschema>=4.25","mypy>=1.18","pip-audit>=2.9","pytest>=8","ruff>=0.13"]
+research=["matplotlib>=3.7"]
 
 [tool.pytest.ini_options]
 pythonpath=["src"]
+filterwarnings=["error"]
+
+[tool.ruff]
+target-version="py312"
+line-length=100
+
+[tool.ruff.lint]
+select=["E","F","I","B","UP","S","RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py"=["S101"]
+"scripts/benchmark.py"=["F403","F405","E501","B905"]
+"scripts/stock_case_study.py"=["RUF001"]
+"scripts/clean_wheel_acceptance.py"=["S603"]
+
+[tool.mypy]
+python_version="3.12"
+strict=true
+packages=["financial_algorithms.engine","financial_algorithms.qualification"]

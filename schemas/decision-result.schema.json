@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rad-agent.dev/schemas/financial-decision-result-1.0.json",
+  "title": "Financial decision result",
+  "type": "object",
+  "required": ["schema_version", "engine_id", "engine_version", "adapter_version", "capability_id", "request_digest", "operation", "decision", "execution_authorized", "limitations"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "engine_id": {"const": "financial-algorithm"},
+    "engine_version": {"const": "0.2.0"},
+    "adapter_version": {"const": "1.0.0"},
+    "capability_id": {"const": "rad.decision.financial"},
+    "request_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "operation": {"enum": ["portfolio.allocate", "valuation.estimate", "market.assess"]},
+    "decision": {"type": "object", "minProperties": 1},
+    "execution_authorized": {"const": false},
+    "limitations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+  },
+  "additionalProperties": false
+}
