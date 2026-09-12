@@ -105,7 +105,7 @@ Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk control:
 ## Install and run
 
 ```bash
-python -m pip install financial-algorithms
+python -m pip install 'financial-algorithms @ git+https://github.com/sciencemaths-collab/financial-algorithm.git@e12ffbe52dd7f5a4ad32d906c67b08870b2629da'
 python - <<'PY'
 from financial_algorithms import decide
 
@@ -119,6 +119,10 @@ result = decide({
 print(result["decision"])
 PY
 ```
+
+Version 0.2.0 is not currently published to PyPI. The commit-pinned command above is the
+reproducible public installation path; it prevents an unrelated package or moving branch from
+being installed under the same name.
 
 For a source checkout, use `uv sync --extra test`, then run:
 
