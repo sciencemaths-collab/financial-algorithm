@@ -10,7 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  qualify:
+  test:
+    name: test (${{ matrix.python-version }})
     strategy:
       matrix:
         python-version: ["3.12", "3.14"]
@@ -35,3 +36,12 @@ jobs:
         with:
           name: qualification-python-${{ matrix.python-version }}
           path: artifacts/qualification.json
+
+  qualify:
+    name: qualify
+    if: always()
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every qualification matrix job
+        run: test '${{ needs.test.result }}' = 'success'
