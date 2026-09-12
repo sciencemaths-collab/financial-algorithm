@@ -1,14 +1,18 @@
-# Financial Algorithms: Optimization, Valuation & Market Prediction
+# Financial Decision Engine: Portfolio, Valuation and Scenario Analysis
 
-A qualified, deterministic financial decision-support engine combining **portfolio optimization**, **valuation under uncertainty**, and **probabilistic market assessment**. Version 0.2.0 is the reference implementation for RAD capability `rad.decision.financial` through adapter contract 1.0.0.
+A deterministic financial decision-support engine combining **portfolio optimization**, **valuation
+under uncertainty**, and **scenario-based market assessment**. Version 0.2.0 is the reference
+implementation for RAD capability `rad.decision.financial` through adapter contract 1.0.0.
 
-It produces reviewable recommendations only. It cannot place orders, access a broker, authorize a transaction, or guarantee financial performance.
+Its formal qualification covers 25 packaged deterministic contract and benchmark cases. It
+produces reviewable recommendations only. It cannot fetch live market data, place orders, access a
+broker, authorize a transaction, provide investment advice, or guarantee financial performance.
 
 | Model | Purpose | Core method | Output |
 |---|---|---|---|
 | **Portfolio Optimization** | Allocate capital under risk and realistic constraints | Simulated Annealing + SLSQP | Portfolio weights, risk/return profile |
 | **Financial Valuation & Risk** | Estimate value under uncertain future cash flows | DCF + Monte Carlo | Intrinsic-value distribution, P10/P50/P90 |
-| **Trend–Area–Uncertainty Forecasting** | Resolve direction, acceleration, accumulated pressure and uncertainty | Slope + curvature + area + stochastic forecast | Forecast distribution and signal decomposition |
+| **Trend–Area–Uncertainty Scenarios** | Describe direction, acceleration, accumulated pressure and modeled uncertainty | Slope + curvature + area + stochastic simulation | Scenario distribution and signal decomposition |
 
 ## 1. Quantitative Finance & Portfolio Optimization
 
@@ -26,9 +30,11 @@ Monte Carlo simulation propagates uncertainty through future cash flows and prod
 
 **50,000-path reference:** P10 **1054.17**, P50 **1376.21**, P90 **1837.07**.
 
-## 3. Unified Trend–Area–Uncertainty Forecast Model
+## 3. Unified Trend–Area–Uncertainty Scenario Model
 
-The unified model separates price motion into complementary signals: **direction**, **acceleration**, **accumulated displacement from baseline**, and **stochastic uncertainty**.
+The unified model separates an operator-supplied price series into **direction**, **acceleration**,
+**accumulated displacement from baseline**, and **modeled uncertainty**. Outputs are conditional
+scenarios from the supplied snapshot and assumptions, not predictions validated on live markets.
 
 ### Architecture
 
@@ -59,11 +65,14 @@ with $\mu_t=\mu_0+\lambda T_t$.
 | Final unified trend score $T$ | **1.63580** |
 | Signal weights | **0.55 slope / 0.20 curvature / 0.25 area** |
 
-### Forecast with uncertainty
+### Scenario projection with uncertainty
 
 ![Unified forecast with uncertainty](./results/unified_forecast.jpg)
 
-The historical trajectory and smoothed trend are followed by a **45-session Monte Carlo forecast**. The central path is the median of 2,500 simulations; the widening interval shows uncertainty accumulating with forecast horizon rather than presenting a falsely precise single price target.
+The demonstration trajectory and smoothed trend are followed by a **45-session Monte Carlo
+projection**. The central path is the median of 2,500 simulations; the widening interval shows
+modeled uncertainty under the demonstration assumptions. It is not a calibrated live-market price
+target.
 
 ### Signal decomposition
 
@@ -86,9 +95,15 @@ Slope measures current direction, curvature measures whether movement is strengt
 
 ### Controlled signal test
 
-Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk control: **−0.0107 [−0.0178, −0.0031]**. The negative control checks whether the forecasting machinery manufactures apparent skill when no persistence signal is introduced.
+On the packaged synthetic persistence fixture, the measured score was **+0.0170 [0.0077,
+0.0259]**; on its random-walk control it was **−0.0107 [−0.0178, −0.0031]**. These fixture results
+test implementation behavior and do not establish out-of-sample market forecasting skill.
 
 ## Benchmark summary
+
+All figures below come from packaged deterministic or seeded synthetic demonstrations. They are
+reproducibility evidence for the software, not historical backtests, live-market validation,
+profitability evidence, or expected returns.
 
 | Experiment | Result |
 |---|---:|
@@ -99,8 +114,12 @@ Controlled persistence skill: **+0.0170 [0.0077, 0.0259]**. Random-walk control:
 | Monte Carlo DCF, 50,000 paths | **P10 1054.17 / P50 1376.21 / P90 1837.07** |
 | Unified-model controlled-signal skill | **+0.0170 [0.0077, 0.0259]** |
 | Random-walk control | **−0.0107 [−0.0178, −0.0031]** |
-| Automated tests | **28/28 passed** |
+| Automated tests | See the current CI run for the authoritative count |
 | Formal decision-support qualification | **25/25 passed** |
+
+Qualification status: `QUALIFIED_FOR_DECISION_SUPPORT_BENCHMARKS`. The qualified boundary excludes
+live feeds, broker connectivity, transaction execution, suitability decisions, autonomous action,
+and future-performance claims.
 
 ## Install and run
 
